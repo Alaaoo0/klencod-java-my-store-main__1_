@@ -1,0 +1,95 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+export default function ProfilePage() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [ordersCount, setOrdersCount] = useState(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    // جلب بيانات المستخدم
+    fetch("/api/auth/me", { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user);
+          // جلب عدد الطلبات
+          return fetch("/api/user/orders");
+        } else {
+          router.push("/login");
+        }
+      })
+      .then(res => res?.json())
+      .then(orders => {
+        if (orders) setOrdersCount(orders.length);
+        setLoading(false);
+      })
+      .catch(() => {
+        router.push("/login");
+      });
+  }, [router]);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/";
+  };
+
+  if (loading) return <p className="text-center mt-20 text-black font-bold">جاري التحميل...</p>;
+
+  return (
+    <main className="max-w-4xl mx-auto p-4 md:p-6 mt-8 min-h-screen" dir="rtl">
+      <h1 className="text-3xl font-bold text-red-600 mb-8">حسابي</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* كرت معلومات الحساب */}
+        <div className="md:col-span-1 bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-fit text-center">
+          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+            👤
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
+          <p className="text-sm text-gray-500 mt-1" dir="ltr">{user?.email}</p>
+          
+          <button onClick={handleLogout} className="mt-6 w-full bg-gray-100 text-red-600 font-bold py-2 rounded-lg hover:bg-gray-200 transition-colors">
+            تسجيل خروج
+          </button>
+        </div>
+
+        {/* روابط سريعة */}
+        <div className="md:col-span-2 space-y-4">
+          <Link href="/orders" className="flex items-center justify-between bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-2xl">📦</div>
+              <div>
+                <h3 className="font-bold text-gray-900">طلباتي</h3>
+                <p className="text-sm text-gray-500">عندك {ordersCount} طلب</p>
+              </div>
+            </div>
+            <span className="text-gray-400">←</span>
+          </Link>
+
+          <Link href="/wishlist" className="flex items-center justify-between bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center text-2xl">❤️</div>
+              <div>
+                <h3 className="font-bold text-gray-900">مفضلتي</h3>
+                <p className="text-sm text-gray-500">المنتجات يلي حفظتها</p>
+              </div>
+            </div>
+            <span className="text-gray-400">←</span>
+          </Link>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="font-bold text-gray-900 mb-2">العنوان الافتراضي</h3>
+            <p className="text-sm text-gray-500">لما تعمل طلب جديد، الموقع رح يستخدم اسمك وإيميلك تلقائياً.</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  );
+}
